@@ -30,8 +30,7 @@ public class EventControllerTests {
     @DisplayName("이벤트 생성 테스트")
     @Test
     public void createEvent() throws Exception {
-        Event event = Event.builder()
-                .id(100)
+        EventDto event = EventDto.builder()
                 .name("Spring")
                 .description("REST API DEV With Spring")
                 .beginEventDateTime(LocalDateTime.of(2020,10,31,18,00))
@@ -58,4 +57,33 @@ public class EventControllerTests {
         .andExpect(header().string(HttpHeaders.CONTENT_TYPE, String.valueOf(MediaType.APPLICATION_JSON)))
         .andExpect(jsonPath("id").value(Matchers.not(100)));
     }
+
+    @DisplayName("이벤트 생성 배드 리퀘스트 테스트")
+    @Test
+    public void bad_createEvent() throws Exception {
+        Event event = Event.builder()
+                .id(100)
+                .name("Spring")
+                .description("REST API DEV With Spring")
+                .beginEventDateTime(LocalDateTime.of(2020,10,31,18,00))
+                .closeEnrollmentDateTime(LocalDateTime.of(2020,11,01,13,00))
+                .beginEventDateTime(LocalDateTime.of(2020,10,30,18,00))
+                .endEventDateTime(LocalDateTime.of(2020,11,01,13,00))
+                .basePrice(100)
+                .maxPrice(200)
+                .limitOfEnrollment(100)
+                .location("스벅")
+                .build();
+
+        //repository에 save가 호출되면 event를 리턴해줘라
+        //Mockito.when(eventRepository.save(event)).thenReturn(event);
+
+        mockMvc.perform(post("/api/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(event)))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
 }
