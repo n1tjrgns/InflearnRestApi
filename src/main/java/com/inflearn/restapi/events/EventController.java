@@ -38,6 +38,8 @@ public class EventController {
         }
 
         //validator 검증 코드
+        //errors 객체는 자바 빈 객체가 아니기 때문에 직렬화가 불가능하다.
+        // ErrorSerializer 라는 JsonComponent를 작성하여 직렬화 커스텀 설정한다.
         eventValidator.validate(eventDto, errors);
         if (errors.hasErrors()){
             return ResponseEntity.badRequest().build();
