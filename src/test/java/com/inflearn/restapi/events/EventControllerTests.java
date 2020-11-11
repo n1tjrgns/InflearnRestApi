@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,8 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.stream.IntStream;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -31,6 +31,12 @@ public class EventControllerTests {
 
     @Autowired
     EventRepository eventRepository;
+
+    private final ModelMapper modelMapper;
+
+    public EventControllerTests(ModelMapper modelMapper) {
+        this.modelMapper = modelMapper;
+    }
 
     @DisplayName("이벤트 생성 테스트")
     @Test
@@ -178,5 +184,52 @@ public class EventControllerTests {
         //When & then
         this.mockMvc.perform(get("/api/events/1212121"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("이벤트를 정상적으로 수정하기")
+    public void updateEvent() throws Exception{
+        //Given
+        Event event = this.generateEvent(200);
+        String eventName= "Updated Event";
+        EventDto eventDto = EventDto.builder()
+                .name("Updated Event")
+                .description("REST API DEV With Spring")
+                .beginEventDateTime(LocalDateTime.of(2020,10,31,18,00))
+                .closeEnrollmentDateTime(LocalDateTime.of(2020,11,01,13,00))
+                .beginEventDateTime(LocalDateTime.of(2020,10,30,18,00))
+                .endEventDateTime(LocalDateTime.of(2020,11,01,13,00))
+                .basePrice(10000)
+                .maxPrice(200)
+                .limitOfEnrollment(100)
+                .location("스벅")
+                .build();
+
+        //When & Then
+        this.mockMvc.perform(put("/api/events/{id}", event.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(this.objectMapper.writeValueAsString(eventDto)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("name").value(eventName))
+                .andExpect(jsonPath("_links.self").exists());
+    }
+
+    @Test
+    @DisplayName("입력값이 잘못된 경우 이벤트 수정 실패")
+    public void updateEvent404() throws Exception{
+        //Given
+        Event event = this.generateEvent(200);
+
+        EventDto eventDto = new EventDto();
+
+
+        //When & Then
+        this.mockMvc.perform(put("/api/events/{id}", event.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(eventDto)))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
     }
 }
