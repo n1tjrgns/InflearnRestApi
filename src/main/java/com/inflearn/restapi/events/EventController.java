@@ -1,10 +1,17 @@
 package com.inflearn.restapi.events;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.Errors;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,7 +56,19 @@ public class EventController {
         Event newEvent = this.eventRepository.save(event);
         //HateOas 메소드
         //URI createdUri = linkTo(methodOn(EventController.class).createEvent()).slash("{id}").toUri();
-        URI createdUri = linkTo(EventController.class).slash(newEvent.getId()).toUri();
-        return ResponseEntity.created(createdUri).body(newEvent);
+        WebMvcLinkBuilder selfLinkBuilder =linkTo(EventController.class).slash(newEvent.getId());
+        URI createdUri = selfLinkBuilder.toUri();
+        EventResource eventResource = new EventResource(event);
+        eventResource.add(linkTo(EventController.class).withRel("query-events"));
+        eventResource.add(selfLinkBuilder.withSelfRel());
+        eventResource.add(selfLinkBuilder.withRel("update-event"));
+        return ResponseEntity.created(createdUri).body(eventResource);
+    }
+
+    @GetMapping
+    public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler){
+        Page<Event> page = this.eventRepository.findAll(pageable);
+        PagedModel<EntityModel<Event>> pagedResources = assembler.toModel(page);
+        return ResponseEntity.ok(pagedResources);
     }
 }
